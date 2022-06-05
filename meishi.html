@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <script data-ezscrex="false" data-cfasync="false" data-pagespeed-no-defer="">
+      var __ez = __ez || {};
+      __ez.stms = Date.now();
+      __ez.evt = {};
+      __ez.script = {};
+      __ez.ck = __ez.ck || {};
+      __ez.template = {};
+      __ez.template.isOrig = true;
+      __ez.queue = (function () {
+        var count = 0,
+          incr = 0,
+          items = [],
+          timeDelayFired = false,
+          hpItems = [],
+          lpItems = [],
+          allowLoad = true;
+        var obj = {
+          func: function (
+            name,
+            funcName,
+            parameters,
+            isBlock,
+            blockedBy,
+            deleteWhenComplete,
+            proceedIfError
+          ) {
+            var self = this;
+            this.name = name;
+            this.funcName = funcName;
+            this.parameters =
+              parameters === null ? null : parameters instanceof Array ? parameters : [parameters];
+            this.isBlock = isBlock;
+            this.blockedBy = blockedBy;
+            this.deleteWhenComplete = deleteWhenComplete;
+            this.isError = false;
+            this.isComplete = false;
+            this.isInitialized = false;
+            this.proceedIfError = proceedIfError;
+            this.isTimeDelay = false;
+            this.process = function () {
+              log('... func = ' + name);
+              self.isInitialized = true;
+              self.isComplete = true;
+              log('... func.apply: ' + name);
+              var funcs = self.funcName.split('.');
+              var func = null;
+              if (funcs.length > 3) {
+              } else if (funcs.length === 3) {
+                func = window[funcs[0]][funcs[1]][funcs[2]];
+              } else if (funcs.length === 2) {
+                func = window[funcs[0]][funcs[1]];
+              } else {
+                func = window[self.funcName];
+              }
+              if (typeof func !== 'undefined' && func !== null) {
+                func.apply(null, this.parameters);
+              }
+              if (self.deleteWhenComplete === true) delete items[name];
+              if (self.isBlock === true) {
+                log("----- F'D: " + self.name);
+                processAll();
+              }
+            };
+          },
+          file: function (name, path, isBlock, blockedBy, async, defer, proceedIfError) {
+            var self = this;
+            this.name = name;
+            this.path = path;
+            this.async = async;
+            this.defer = defer;
+            this.isBlock = isBlock;
+            this.blockedBy = blockedBy;
+            this.isInitialized = false;
+            this.isError = false;
+            this.isComplete = false;
+            this.proceedIfError = proceedIfError;
+            this.isTimeDelay = false;
+            this.process = function () {
+              self.isInitialized = true;
+              log('... file = ' + name);
+              var scr = document.createElement('script');
+              scr.src = path;
+              if (async === true) scr.async = true;
+              else if (defer === true) scr.defer = true;
+              scr.onerror = function () {
+                log("----- ERR'D: " + self.name);
+                self.isError = true;
+                if (self.isBlock === true) {
+                  processAll();
+                }
+              };
+              scr.onreadystatechange = scr.onload = function () {
+                var state = scr.readyState;
+                log("----- F'D: " + self.name);
+                if (!state || /loaded|complete/.test(state)) {
+                  self.isComplete = true;
+                  if (self.isBlock === true) {
+                    processAll();
+                  }
+                }
+              };
+              document.getElementsByTagName('head')[0].appendChild(scr);
+            };
+          },
+          fileLoaded: function (name, isComplete) {
+            this.name = name;
+            this.path = '';
+            this.async = false;
+            this.defer = false;
+            this.isBlock = false;
+            this.blockedBy = [];
+            this.isInitialized = true;
+            this.isError = false;
+            this.isComplete = isComplete;
+            this.proceedIfError = false;
+            this.isTimeDelay = false;
+            this.process = function () {};
+          },
+        };
+        function init() {
+          window.addEventListener(
+            'load',
+            function () {
+              setTimeout(function () {
+                timeDelayFired = true;
+                log('TDELAY -----');
+                processAll();
+              }, 5000);
+            },
+            false
+          );
+        }
+        function addFile(name, path, isBlock, blockedBy, async, defer, proceedIfError, priority) {
+          var item = new obj.file(name, path, isBlock, blockedBy, async, defer, proceedIfError);
+          if (priority === true) {
+            hpItems[name] = item;
+          } else {
+            lpItems[name] = item;
+          }
+          items[name] = item;
+          checkIfBlocked(item);
+        }
+        function setallowLoad(settobool) {
+          allowLoad = settobool;
+        }
+        function addFunc(
+          name,
+          func,
+          parameters,
+          isBlock,
+          blockedBy,
+          autoInc,
+          deleteWhenComplete,
+          proceedIfError,
+          priority
+        ) {
+          if (autoInc === true) name = name + '_' + incr++;
+          var item = new obj.func(
+            name,
+            func,
+            parameters,
+            isBlock,
+            blockedBy,
+            deleteWhenComplete,
+            proceedIfError
+          );
+          if (priority === true) {
+            hpItems[name] = item;
+          } else {
+            lpItems[name] = item;
+          }
+          items[name] = item;
+          checkIfBlocked(item);
+        }
+        function addTimeDelayFile(name, path) {
+          var item = new obj.file(name, path, false, [], false, false, true);
+          item.isTimeDelay = true;
+          log(name + ' ... ' + ' FILE! TDELAY');
+          lpItems[name] = item;
+          items[name] = item;
+          checkIfBlocked(item);
+        }
+        function addTimeDelayFunc(name, func, parameters) {
+          var item = new obj.func(name, func, parameters, false, [], true, true);
+          item.isTimeDelay = true;
+          log(name + ' ... ' + ' FUNCTION! TDELAY');
+          lpItems[name] = item;
+          items[name] = item;
+          checkIfBlocked(item);
+        }
+        function checkIfBlocked(item) {
+          if (isBlocked(item) === true || allowLoad == false) return;
+          item.process();
+        }
+        function isBlocked(item) {
+          if (item.isTimeDelay === true && timeDelayFired === false) {
+            log(item.name + ' blocked = TIME DELAY!');
+            return true;
+          }
+          if (item.blockedBy instanceof Array) {
+            for (var i = 0; i < item.blockedBy.length; i++) {
+              var block = item.blockedBy[i];
+              if (items.hasOwnProperty(block) === false) {
+                log(item.name + ' blocked = ' + block);
+                return true;
+              } else if (item.proceedIfError === true && items[block].isError === true) {
+                return false;
+              } else if (items[block].isComplete === false) {
+                log(item.name + ' blocked = ' + block);
+                return true;
+              }
+            }
+          }
+          return false;
+        }
+        function markLoaded(filename) {
+          if (!filename || 0 === filename.length) {
+            return;
+          }
+          if (filename in items) {
+            var item = items[filename];
+            if (item.isComplete === true) {
+              log(item.name + ' ' + filename + ': error loaded duplicate');
+            } else {
+              item.isComplete = true;
+              item.isInitialized = true;
+            }
+          } else {
+            items[filename] = new obj.fileLoaded(filename, true);
+          }
+          log('markLoaded dummyfile: ' + items[filename].name);
+        }
+        function logWhatsBlocked() {
+          for (var i in items) {
+            if (items.hasOwnProperty(i) === false) continue;
+            var item = items[i];
+            isBlocked(item);
+          }
+        }
+        function log(msg) {
+          var href = window.location.href;
+          var reg = new RegExp('[?&]ezq=([^&#]*)', 'i');
+          var string = reg.exec(href);
+          var res = string ? string[1] : null;
+          if (res === '1') console.debug(msg);
+        }
+        function processAll() {
+          count++;
+          if (count > 200) return;
+          log("let's go");
+          processItems(hpItems);
+          processItems(lpItems);
+        }
+        function processItems(list) {
+          for (var i in list) {
+            if (list.hasOwnProperty(i) === false) continue;
+            var item = list[i];
+            if (
+              item.isComplete === true ||
+              isBlocked(item) ||
+              item.isInitialized === true ||
+              item.isError === true
+            ) {
+              if (item.isError === true) {
+                log(item.name + ': error');
+              } else if (item.isComplete === true) {
+                log(item.name + ': complete already');
+              } else if (item.isInitialized === true) {
+                log(item.name + ': initialized already');
+              }
+            } else {
+              item.process();
+            }
+          }
+        }
+        init();
+        return {
+          addFile: addFile,
+          addDelayFile: addTimeDelayFile,
+          addFunc: addFunc,
+          addDelayFunc: addTimeDelayFunc,
+          items: items,
+          processAll: processAll,
+          setallowLoad: setallowLoad,
+          markLoaded: markLoaded,
+          logWhatsBlocked: logWhatsBlocked,
+        };
+      })();
+      (__ez.evt.add = function (e, t, n) {
+        e.addEventListener
+          ? e.addEventListener(t, n, !1)
+          : e.attachEvent
+          ? e.attachEvent('on' + t, n)
+          : (e['on' + t] = n());
+      }),
+        (__ez.evt.remove = function (e, t, n) {
+          e.removeEventListener
+            ? e.removeEventListener(t, n, !1)
+            : e.detachEvent
+            ? e.detachEvent('on' + t, n)
+            : delete e['on' + t];
+        });
+      __ez.script.add = function (e) {
+        var t = document.createElement('script');
+        (t.src = e),
+          (t.async = !0),
+          (t.type = 'text/javascript'),
+          document.getElementsByTagName('head')[0].appendChild(t);
+      };
+      __ez.dot = {};
+      __ez.vep = (function () {
+        var pixels = [],
+          pxURL = '/detroitchicago/grapefruit.gif';
+        function AddPixel(vID, pixelData) {
+          if (__ez.dot.isDefined(vID) && __ez.dot.isValid(pixelData)) {
+            pixels.push({
+              type: 'video',
+              video_impression_id: vID,
+              domain_id: __ez.dot.getDID(),
+              t_epoch: __ez.dot.getEpoch(0),
+              data: __ez.dot.dataToStr(pixelData),
+            });
+          }
+        }
+        function Fire() {
+          if (
+            typeof document.visibilityState !== 'undefined' &&
+            document.visibilityState === 'prerender'
+          ) {
+            return;
+          }
+          if (__ez.dot.isDefined(pixels) && pixels.length > 0) {
+            while (pixels.length > 0) {
+              var j = 5;
+              if (j > pixels.length) {
+                j = pixels.length;
+              }
+              var pushPixels = pixels.splice(0, j);
+              var pixelURL =
+                __ez.dot.getURL(pxURL) +
+                '?orig=' +
+                (__ez.template.isOrig === true ? 1 : 0) +
+                '&v=' +
+                btoa(JSON.stringify(pushPixels));
+              __ez.dot.Fire(pixelURL);
+            }
+          }
+          pixels = [];
+        }
+        return { Add: AddPixel, Fire: Fire };
+      })();
+    </script>
+    <script data-ezscrex="false" data-cfasync="false" data-pagespeed-no-defer="">
+      __ez.pel = (function () {
+        var pixels = [],
+          pxURL = '/porpoiseant/army.gif';
+        function AddAndFirePixel(adSlot, pixelData) {
+          AddPixel(adSlot, pixelData, 0, 0, 0, 0, 0);
+          Fire();
+        }
+        function AddAndFireOrigPixel(adSlot, pixelData) {
+          AddPixel(adSlot, pixelData, 0, 0, 0, 0, 0, true);
+          Fire();
+        }
+        function GetCurrentPixels() {
+          return pixels;
+        }
+        function AddPixel(
+          adSlot,
+          pixelData,
+          revenue,
+          est_revenue,
+          bid_floor_filled,
+          bid_floor_prev,
+          stat_source_id,
+          isOrig
+        ) {
+          if (
+            !__ez.dot.isDefined(adSlot) ||
+            __ez.dot.isAnyDefined(adSlot.getSlotElementId, adSlot.ElementId) == false
+          ) {
+            return;
+          }
+          if (typeof isOrig === 'undefined') {
+            isOrig = false;
+          }
+          var ad_position_id = parseInt(__ez.dot.getTargeting(adSlot, 'ap'));
+          var impId = __ez.dot.getSlotIID(adSlot),
+            adUnit = __ez.dot.getAdUnit(adSlot, isOrig);
+          var compId = parseInt(__ez.dot.getTargeting(adSlot, 'compid'));
+          var lineItemId = 0;
+          var creativeId = 0;
+          var ezimData = getEzimData(adSlot);
+          if (typeof ezimData == 'object') {
+            if (ezimData.creative_id !== undefined) {
+              creativeId = ezimData.creative_id;
+            }
+            if (ezimData.line_item_id !== undefined) {
+              lineItemId = ezimData.line_item_id;
+            }
+          }
+          if (__ez.dot.isDefined(impId, adUnit) && __ez.dot.isValid(pixelData)) {
+            if ((impId !== '0' || isOrig === true) && adUnit !== '') {
+              pixels.push({
+                type: 'impression',
+                impression_id: impId,
+                domain_id: __ez.dot.getDID(),
+                unit: adUnit,
+                t_epoch: __ez.dot.getEpoch(0),
+                revenue: revenue,
+                est_revenue: est_revenue,
+                ad_position: ad_position_id,
+                ad_size: '',
+                bid_floor_filled: bid_floor_filled,
+                bid_floor_prev: bid_floor_prev,
+                stat_source_id: stat_source_id,
+                country_code: __ez.dot.getCC(),
+                pageview_id: __ez.dot.getPageviewId(),
+                comp_id: compId,
+                line_item_id: lineItemId,
+                creative_id: creativeId,
+                data: __ez.dot.dataToStr(pixelData),
+                is_orig: isOrig || __ez.template.isOrig,
+              });
+            }
+          }
+        }
+        function AddPixelById(impFullId, pixelData, isOrig, revenue) {
+          var vals = impFullId.split('/');
+          if (__ez.dot.isDefined(impFullId) && vals.length === 3 && __ez.dot.isValid(pixelData)) {
+            var adUnit = vals[0],
+              impId = vals[2];
+            var pix = {
+              type: 'impression',
+              impression_id: impId,
+              domain_id: __ez.dot.getDID(),
+              unit: adUnit,
+              t_epoch: __ez.dot.getEpoch(0),
+              pageview_id: __ez.dot.getPageviewId(),
+              data: __ez.dot.dataToStr(pixelData),
+              is_orig: isOrig || __ez.template.isOrig,
+            };
+            if (typeof revenue !== 'undefined') {
+              pix.revenue = revenue;
+            }
+            pixels.push(pix);
+          }
+        }
+        function Fire() {
+          if (
+            typeof document.visibilityState !== 'undefined' &&
+            document.visibilityState === 'prerender'
+          )
+            return;
+          if (__ez.dot.isDefined(pixels) && pixels.length > 0) {
+            var allPixels = [
+              pixels.filter(function (pixel) {
+                return pixel.is_orig;
+              }),
+              pixels.filter(function (pixel) {
+                return !pixel.is_orig;
+              }),
+            ];
+            allPixels.forEach(function (pixels) {
+              while (pixels.length > 0) {
+                var isOrig = pixels[0].is_orig || false;
+                var j = 5;
+                if (j > pixels.length) {
+                  j = pixels.length;
+                }
+                var pushPixels = pixels.splice(0, j);
+                var pixelURL =
+                  __ez.dot.getURL(pxURL) +
+                  '?orig=' +
+                  (isOrig === true ? 1 : 0) +
+                  '&sts=' +
+                  btoa(JSON.stringify(pushPixels));
+                if (
+                  typeof window.isAmp !== 'undefined' &&
+                  isAmp &&
+                  typeof window._ezaq !== 'undefined' &&
+                  _ezaq.hasOwnProperty('domain_id')
+                ) {
+                  pixelURL += '&visit_uuid=' + _ezaq['visit_uuid'];
+                }
+                __ez.dot.Fire(pixelURL);
+              }
+            });
+          }
+          pixels = [];
+        }
+        function getEzimData(adSlot) {
+          if (typeof _ezim_d == 'undefined') {
+            return false;
+          }
+          var adUnitName = __ez.dot.getAdUnitPath(adSlot).split('/').pop();
+          if (typeof _ezim_d === 'object' && _ezim_d.hasOwnProperty(adUnitName)) {
+            return _ezim_d[adUnitName];
+          }
+          for (var ezimKey in _ezim_d) {
+            if (ezimKey.split('/').pop() === adUnitName) {
+              return _ezim_d[ezimKey];
+            }
+          }
+          return false;
+        }
+        return {
+          Add: AddPixel,
+          AddAndFire: AddAndFirePixel,
+          AddAndFireOrig: AddAndFireOrigPixel,
+          AddById: AddPixelById,
+          Fire: Fire,
+          GetPixels: GetCurrentPixels,
+        };
+      })();
+    </script>
+    <!-- basic -->
+
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <!-- mobile metas -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1" />
+    <!-- site metas -->
+    <title>Blogging</title>
+    <meta name="keywords" content="" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <!-- bootstrap css -->
+    <link rel="stylesheet" href="static/css/bootstrap.min.css" />
+    <!-- style css -->
+    <link rel="stylesheet" href="static/css/style.css" />
+    <!-- Responsive-->
+    <link rel="stylesheet" href="static/css/responsive.css" />
+    <!-- fevicon -->
+
+    <!-- Tweaks for older IEs-->
+    <link rel="stylesheet" href="static/css/owl.carousel.min.css" />
+    <link rel="stylesheet" href="static/css/font-awesome.css" />
+    <link rel="stylesheet" href="static/css/bootstrap-datepicker.min.css" />
+
+    <link rel="canonical" href="" />
+    <script type="text/javascript">
+      var ezouid = '1';
+    </script>
+    <script type="text/javascript">
+      var ezoTemplate = 'old_site_noads';
+      if (typeof ezouid == 'undefined') {
+        var ezouid = 'none';
+      }
+      var ezoFormfactor = '1';
+      var ezo_elements_to_check = Array();
+    </script>
+    <!-- START EZHEAD -->
+    <script data-ezscrex="false" type="text/javascript">
+      var soc_app_id = '0';
+      var did = 317139;
+      var ezdomain = 'html.design';
+      var ezoicSearchable = 1;
+    </script>
+    <!--{jquery}-->
+    <!-- END EZHEAD -->
+    <script data-ezscrex="false" type="text/javascript" data-cfasync="false">
+      var _ezaq = {
+        ad_cache_level: 0,
+        ad_lazyload_version: 0,
+        ad_load_version: 0,
+        city: 'Aoguan',
+        country: 'CN',
+        days_since_last_visit: -1,
+        domain_id: 317139,
+        engaged_time_visit: 0,
+        ezcache_level: 2,
+        ezcache_skip_code: 0,
+        form_factor_id: 1,
+        framework_id: 1,
+        is_return_visitor: false,
+        is_sitespeed: 0,
+        last_page_load: '',
+        last_pageview_id: '',
+        lt_cache_level: 0,
+        metro_code: 0,
+        page_ad_positions: '',
+        page_view_count: 0,
+        page_view_id: 'c8236828-cf8c-4f2d-4d1f-96a40bf5f89f',
+        position_selection_id: 0,
+        postal_code: '',
+        pv_event_count: 0,
+        response_size_orig: 21601,
+        response_time_orig: 3,
+        serverid: '54.214.122.155:2455',
+        state: 'FJ',
+        t_epoch: 1652687801,
+        template_id: 120,
+        time_on_site_visit: 0,
+        url: '#',
+        user_id: 0,
+        weather_precipitation: 0,
+        weather_summary: '',
+        weather_temperature: 0,
+        word_count: 472,
+        worst_bad_word_level: 0,
+      };
+      var _ezExtraQueries = '&ez_orig=1';
+    </script>
+    <script data-ezscrex="false" data-pagespeed-no-defer="" data-cfasync="false">
+      function create_ezolpl(pvID, rv) {
+        var d = new Date();
+        d.setTime(d.getTime() + 365 * 24 * 60 * 60 * 1000);
+        var expires = 'expires=' + d.toUTCString();
+        __ez.ck.setByCat(
+          'ezux_lpl_317139=' + new Date().getTime() + '|' + pvID + '|' + rv + '; ' + expires,
+          3
+        );
+      }
+      function attach_ezolpl(pvID, rv) {
+        if (document.readyState === 'complete') {
+          create_ezolpl(pvID, rv);
+        }
+        if (window.attachEvent) {
+          window.attachEvent('onload', create_ezolpl, pvID, rv);
+        } else {
+          if (window.onload) {
+            var curronload = window.onload;
+            var newonload = function (evt) {
+              curronload(evt);
+              create_ezolpl(pvID, rv);
+            };
+            window.onload = newonload;
+          } else {
+            window.onload = create_ezolpl.bind(null, pvID, rv);
+          }
+        }
+      }
+
+      __ez.queue.addFunc(
+        'attach_ezolpl',
+        'attach_ezolpl',
+        ['c8236828-cf8c-4f2d-4d1f-96a40bf5f89f', 'false'],
+        false,
+        ['/detroitchicago/boise.js'],
+        true,
+        false,
+        false,
+        false
+      );
+    </script>
+    <script type="text/javascript">
+      var _audins_dom = 'html_design',
+        _audins_did = 317139;
+      __ez.queue.addFile(
+        '/detroitchicago/cmbv2.js',
+        '/detroitchicago/cmbv2.js?gcb=195-0&cb=04-1y02-5y06-12y07-1y19-5y0b-5y0d-14y13-3y17-4y1c-2y21-3y2d-2y55-1&cmbcb=67&sj=x04x02x06x07x19x0bx0dx13x17x1cx21x2dx55&abt=BidFloorMethod,BidFloorsubVersion',
+        true,
+        [],
+        true,
+        false,
+        true,
+        false
+      );
+    </script>
+    <script type="text/javascript" defer="">
+      __ez.queue.addFile(
+        '/detroitchicago/cmbdv2.js',
+        '/detroitchicago/cmbdv2.js?gcb=195-0&cb=03-5y0c-5y18-4&cmbcb=67&sj=x03x0cx18&abt=BidFloorMethod,BidFloorsubVersion',
+        true,
+        ['/detroitchicago/cmbv2.js'],
+        true,
+        false,
+        true,
+        false
+      );
+    </script>
+  </head>
+  <!-- body -->
+  <body class="main-layout">
+    <!-- loader  -->
+    <div class="loader_bg">
+      <div class="loader"><img src="static/picture/loading.gif" alt="#" /></div>
+    </div>
+    <!-- end loader -->
+
+    <!-- header -->
+    <header class="header-area">
+      <div class="container">
+        <div class="row d_flex">
+          <div class="col-md-12">
+            <div class="header_top">
+              <div class="row">
+                <div class="col-md-4 col-sm-12">
+                  <div class="logo">
+                    <a href="">寻根鱼文化，非遗我传承 </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-12 col-sm-12">
+            <div class="navbar-area">
+              <nav class="site-navbar">
+                <ul>
+                  <li><a  href="index.html">首页</a></li>
+                  <li><a   href="ziyuan.html">资源</a></li>
+                  <li><a  href="xingtai.html">形态</a></li>
+                  <li><a class="active" href="meishi.html">美食</a></li>
+                  <li><a href="gongyi.html">工艺</a></li>
+                  <li><a href="lishi.html">历史</a></li>
+                  <li><a href="chanye.html">产业</a></li>
+                  <li><a  href="wenyi.html">文艺</a></li>
+                  <li><a  href="xuesheng.html">学生风采</a></li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- end header inner -->
+    <!-- banner -->
+    <div class="full_bg" style="margin-top:100px;">
+      <div style="margin-top: 30px">
+        <h2 style="text-align: center;padding-top:30px">寻味顺德 一鱼百味一场鱼的盛宴</h2>
+        <p>
+          “如果内地有吸引我一去再去的地方，那应该是顺德吧。”“所谓食在广东，而广东最好吃的都在顺德。”“如说食在顺德，拍摄美食节目，不能不来顺德。”——美食家蔡澜先生曾不止一次表达了对顺德的喜爱，并多次来到顺德觅食、拍节目。有一次他吃了一桌鲮鱼宴，全桌20道菜全都以鲮鱼为主材料。吃过之后，他不由得赞道：“一种食材，能做出那么多道菜来，令人叹为观止！”的确，说到吃鱼，天下人莫能与顺德人相比。而更让人叹为观止的是，根据统计，顺德人吃鱼的花样已达到200种左右。鱼肉、鱼头、鱼尾、鱼腩、鱼皮、鱼嘴、鱼泡（鱼鳔）、鱼骨、鱼肠、鱼子……不同部位就有不同菜式，鱼身上下无一不可成佳肴，简直到了出神入化的境地。
+        </p>
+        <h3 style="text-align: center; margin-top: 30px">鲮鱼鼻</h3>
+        <p>
+          顺德自古就是鱼米之乡，盛产淡水塘鱼河鲜。鲮鱼是顺德最为出名的特产鱼种。说到吃鲮鱼，当地有这样的一句俗语：鲮鱼鼻，鳊鱼腹，鳙鱼头，草鱼尾。意思是这几种鱼中，这几样东西是最独特而好吃的。鲮鱼鼻是指鲮鱼头的前半部位，虽然肉不多，但骨质松软，是鲮鱼头中最爽滑的部分，也是鱼头的精华所在。取数十个拇指大小、个头均匀的鲮鱼鼻，淋上调好味的鼓汁，上锅清蒸。鱼头吸收了鼓汁的甘香，最后撒上翠绿的葱粒，每一个都意象分明、清丽动人。
+          我第一次吃鲮鱼鼻，仿佛骤然见到暗恋已久的人，既兴奋又紧张笨拙，手忙脚乱，无从下手。厨师大哥告诉我，鲮鱼鼻的吃法跟吃田螺有点相似，极考嘴功。说着传授了我吃法。我怯生生夹起一个，首先用嘴啜出后面的脑汁，然后掉转过来啜鱼嘴和鼻子，慢慢地把鱼头的骨头吮出来，吸啜间清香流转，好像在跳一支快乐的舞蹈，极其曼妙。吃完之后，我有种冲动，只想抱着厨师吻上几口，感谢他做出了如此刁钻好吃的美食。可惜厨师是个男的，想想还是作罢。
+        </p>
+        <img style="display:block;margin:10px auto" src="static/image/28.png" alt="">
+        <h3 style="text-align: center; margin-top: 30px">鱼皮</h3>
+        <p>
+          接下来我们说说鱼皮。顺德人对做鱼特别讲究，物尽其用，整条鱼由头到尾都不会浪费。在厨师的巧手之下，鱼皮也成了一道可口的美味。
+          做鱼皮，一般用鲮鱼或草鱼。鲮鱼皮薄，容易入味；草鱼皮厚，口感更爽脆。听说有些地方也用罗非鱼，我没有吃过。处理鱼皮，极其考究厨师的手艺，其中“去鳞起肉”最考功夫。厨师的刀工必须过硬，才能做到去鳞起肉不伤皮，这一手功夫据说需要2到3年的磨炼。其次淡水鱼的皮往往都会带有泥腥味，如何保鲜除腥，也是一大技巧。
+          鱼皮的吃法，大概有凉拌、油炸、冰镇、煎焗等。凉拌鲮鱼皮/冰镇鲩鱼皮/炸鱼皮云吞面等，但无论有多少种，还是传统的凉拌吃法最受欢迎。凉拌就是鱼皮飞水后放到冰箱冰冻，吃的时候，拌上酱油、香葱、花生、芝麻等配料，用筷子充分搅拌，有点像是顺德的“捞鱼生”，吃起来爽脆鲜美，味道好极了。
+        </p>
+        <img style="display:block;margin:10px auto" src="static/image/29.png" alt="">
+        <h3 style="text-align: center; margin-top: 30px">鱼肠煎蛋</h3>
+        <p>
+          顺德人将每一样食材都用到极致，就是藏污纳垢的鱼肠也不放过。现在很多酒家嫌鱼肠清洗麻烦，索性将鱼肠扔掉。但顺德厨师却能将其利用起来：鱼肠洗净，加上胡椒粉、酒、葱花、陈皮末等调味，与鸡蛋一起做成鱼肠煎蛋，就是一道美味。
+          如果将鱼泡加入煎蛋里面，味厚滋腻，口感更加丰富。鱼泡不是鱼吹出来的泡泡，这是我们的俗称，其实就是鱼鳔。
+        </p>
+        <img style="display:block;margin:10px auto" src="static/image/30.png" alt="">
+        <h3 style="text-align: center; margin-top: 30px">均安鱼饼</h3>
+        <p>
+          顺德美食，妙在精制，妙在家常。上面所说的吃鲮鱼鼻、鱼肠煎蛋，可以看出顺德厨师粗料精制的精神，用简单的材料做出精致的美味，既不浪费又好吃。
+          而说到家常味道，均安鱼饼绝对是值得说一说。均安鱼饼，在当地家家户户的妇女都会做。在以前，人们会将鲮鱼去皮拆骨、起肉剁成肉泥，挞成鱼青，用做打边炉的食材。清代光绪年间，当地人略加变化，将鱼青做成圆饼形状，慢火煎至金黄，熟透后外脆里嫩，吃起来别有风味，这就成了鱼饼。但越是简单的东西，做好就越考究功夫。好吃的均安鱼饼色泽金黄，肉质必须要厚实均匀，吃上去才会爽口弹牙，味道鲜美。反之肉质软绵绵的，毫无口感美感，那就是失败之作。
+        </p>
+        <img style="display:block;margin:10px auto" src="static/image/31.png" alt="">
+        <h3 style="text-align: center; margin-top: 30px">鱼腐</h3>
+        <p>
+          广东有三大鱼腐最为出名，云浮的罗定绉纱鱼腐、佛山的石湾鱼腐和顺德乐从鱼腐，虽然三者选材用料都是鲮鱼肉和鸡蛋，名字都叫做鱼腐，但做法略有分别，从而也导致了口感和味道的不同。
+          以石湾鱼腐和乐从鱼腐为例，石湾鱼腐将面粉、清水和鱼青混合后，最后才放鸡蛋；乐从鱼腐恰恰相反，先在鱼青里放进鸡蛋，然后倒进面粉、清水拌匀。其次，两者的油控也不完全相同，石湾鱼腐只需50度左右的油温，乐从鱼腐则需要大概70度左右。相比之下，我觉得石湾鱼腐软滑可口，而乐从鱼腐的口感更胜一筹，丰厚嫩滑。鱼腐可以直接当做小菜，也可以用来滚烫，丢几块鱼腐下去煲，汤汁更加鲜美甘甜。
+        </p>
+        <img style="display:block;margin:10px auto" src="static/image/32.png" alt="">
+        <h3 style="text-align: center; margin-top: 30px">鱼头</h3>
+        <p>
+          “鳙鱼头，鲩鱼尾”，
+          鳙鱼因为鱼头特别大，所以我们这边也叫做大头鱼、胖头鱼。鳙鱼的鱼身也够大，平常一条鱼大概会有10斤左右，经典的吃法是“一鱼多吃”。鱼头的骨质爽、粘肉香滑，味道鲜甜，清蒸是比较受欢迎的一种吃法，另外还有鱼头豆腐汤、煎焗鱼头等。鱼头味淡，清蒸的时候，一般会下豆豉、蒜蓉和姜葱等来调味，有时也会加一些榨菜或者榄角、冬菜等，在辟腥的同时，更能带出鱼头的鲜甜；在顺德大良，马姐一派做的豉汁鱼头，则喜欢添加一点白胡椒，让味道浓重一些，更加惹味。
+        </p>
+        <img style="display:block;margin:10px auto" src="static/image/33.png" alt="">
+        <h3 style="text-align: center; margin-top: 30px">拆鱼羹</h3>
+        <p>
+          拆鱼羹是顺德的传统菜，但这次我们吃到的又有不同。传统顺德鱼羹将鱼肉煎过之后剔除鱼骨，鱼肉做羹；这次的鱼羹，大厨先将鱼起肉拆骨，鱼骨连同猪骨熬汤，再加入泰国香米、东北大米等，以汤煲粥，熬煮2小时左右。煲出来的粥水烹制鱼肉做成羹，加入红白萝卜丝、丝瓜丝、瑶柱、鸡蛋、洋葱、木耳丝等配料，这才做成一道招牌鱼羹。比起传统鱼羹工序更复杂，但口感和谐，层次分明，气味芳香浓郁，味道鲜甜得惊人。
+        </p>
+        <img style="display:block;margin:10px auto" src="static/image/34.png" alt="">
+        <h3 style="text-align: center; margin-top: 30px">鱼生</h3>
+        
+        <p>
+          顺德人吃鱼生的风俗，由来已久。以前的顺德人捕鱼为生，渔民把鱼宰开，切成薄片，伴以油盐来吃，这就是鱼生了。事实上，中国人吃鱼生的历史更悠久，最早可上溯到先秦时期。孔子也说过：“食不厌精，脍不厌细。|这个“脍”，就是生鱼片。
+          到了现代，吃鱼生，不只是加油、盐了，吃法更多样性，会把鱼生和洋葱丝、姜、蒜、芋头丝、花生等搅匀一起吃，广东人做事喜欢讲究好意头，所以吃个鱼生，也按上一个吉利的说法：捞鱼生。“捞”是指拌匀，但在粤语里还有“赚”
+          的意思。将所有配料与鱼生捞匀在一起，一边捞，一边大喊：“捞啊，捞啊！发啊！发啊！”，寓意“捞得风生水起”。
+        </p>
+        <img style="display:block;margin:10px auto" src="static/image/35.png" alt="">
+      
+        <h3 style="text-align: center; margin-top: 30px">鱼片</h3>
+      
+        <p>
+          鱼片的吃法，一般就葱油鱼片、或者鱼片滚汤、煲粥等。只要鱼够鲜，吃起来也非常可口。有鱼片粥/炒鱼片/丝瓜夹鱼片等，丝瓜从中切开，夹上鱼片，顶层铺上蒜蓉。丝瓜的清甜与鱼片的鲜甜融合在一起，加上蒜蓉的点缀，鲜味更加突出，一口咬下，醇滑鲜甜，啊，真好吃。
+        </p>
+        <img style="display:block;margin:10px auto" src="static/image/36.png" alt="">
+      
+        <h3 style="text-align: center; margin-top: 30px">油盐蒸鲩鱼</h3>
+       
+        <p>
+          所谓“大味至简”，吃鱼，吃到最后，无非就是要吃鱼的“鲜”。这个鲜，在我们广东人来说，最简单直接的方法就是蒸来吃。蒸看似简单，实则对食材的要求和火候的控制都相当严格。平时在外面吃饭，实话说，很难吃得到好吃的蒸鱼。但那一次，在顺德均安的喻家厨房，确确实实把我惊艳到了。
+          好吃是有原因的。鱼是自家鱼塘养殖，为了去除泥腥味，鲩鱼还经过了100天的净水“瘦身”，所以即使以简单的油盐姜葱来蒸，已然足够。鱼肉鲜香爽口，没有一丝丝泥腥味，好吃到整个人都快要飞起来。
+          当然，顺德不只是只有鱼可吃，鱼的吃法也不止上面所说的。顺德4街6镇，每个地方都有自己独特的美食，好吃的东西非常多，而且很多都是以当地的地名冠名，地方特色极其鲜明：像上过《舌尖上的中国》的均安蒸猪，驰名中外的大良双皮奶、炒牛奶，还有伦教糕、龙江米沙肉、大良磞砂、勒流菜远炒水蛇片、凤城（大良）酿节瓜等等。
+        </p>
+        <img style="display:block;margin:10px auto" src="static/image/38.png" alt="">
+
+        <h3 style="text-align: center; margin-top: 30px">学生风采</h3>
+        <div style="display:flex;justify-content:center">
+          <img style="display:block;margin:10px auto" src="static/image/5.png" alt="">
+          <img style="display:block;margin:10px auto" src="static/image/4.png" alt="">
+        </div>
+        <div style="display:flex;justify-content:center">
+          <img style="display:block;margin:10px auto" src="static/image/2.png" alt="">
+          <img style="display:block;margin:10px auto" src="static/image/3.png" alt="">
+        </div>
+      </div>
+    </div>
+
+    <script data-cfasync="false" src="static/js/email-decode.min.js"></script>
+    <script src="static/js/jquery.min.js"></script>
+    <script src="static/js/bootstrap.bundle.min.js"></script>
+    <script src="static/js/jquery-3.0.0.min.js"></script>
+    <script src="static/js/owl.carousel.min.js"></script>
+    <script src="static/js/bootstrap-datepicker.min.js"></script>
+    <script src="static/js/custom.js"></script>
+
+    <script type="text/javascript" style="display: none" async=""></script>
+
+    <script type="text/javascript" data-cfasync="false"></script>
+  </body>
+</html>
