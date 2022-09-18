@@ -1,340 +1,474 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <script data-ezscrex="false" data-cfasync="false" data-pagespeed-no-defer="">
-      var __ez = __ez || {};
-      __ez.stms = Date.now();
-      __ez.evt = {};
-      __ez.script = {};
-      __ez.ck = __ez.ck || {};
-      __ez.template = {};
-      __ez.template.isOrig = true;
-      __ez.queue = (function () {
-        var count = 0,
-          incr = 0,
-          items = [],
-          timeDelayFired = false,
-          hpItems = [],
-          lpItems = [],
-          allowLoad = true;
-        var obj = {
-          func: function (
-            name,
-            funcName,
-            parameters,
-            isBlock,
-            blockedBy,
-            deleteWhenComplete,
-            proceedIfError
-          ) {
-            var self = this;
-            this.name = name;
-            this.funcName = funcName;
-            this.parameters =
-              parameters === null ? null : parameters instanceof Array ? parameters : [parameters];
-            this.isBlock = isBlock;
-            this.blockedBy = blockedBy;
-            this.deleteWhenComplete = deleteWhenComplete;
-            this.isError = false;
-            this.isComplete = false;
-            this.isInitialized = false;
-            this.proceedIfError = proceedIfError;
-            this.isTimeDelay = false;
-            this.process = function () {
-              log('... func = ' + name);
-              self.isInitialized = true;
-              self.isComplete = true;
-              log('... func.apply: ' + name);
-              var funcs = self.funcName.split('.');
-              var func = null;
-              if (funcs.length > 3) {
-              } else if (funcs.length === 3) {
-                func = window[funcs[0]][funcs[1]][funcs[2]];
-              } else if (funcs.length === 2) {
-                func = window[funcs[0]][funcs[1]];
-              } else {
-                func = window[self.funcName];
-              }
-              if (typeof func !== 'undefined' && func !== null) {
-                func.apply(null, this.parameters);
-              }
-              if (self.deleteWhenComplete === true) delete items[name];
+
+<head>
+  <meta charset="utf-8" />
+  <script data-ezscrex="false" data-cfasync="false" data-pagespeed-no-defer="">
+    var __ez = __ez || {};
+    __ez.stms = Date.now();
+    __ez.evt = {};
+    __ez.script = {};
+    __ez.ck = __ez.ck || {};
+    __ez.template = {};
+    __ez.template.isOrig = true;
+    __ez.queue = (function () {
+      var count = 0,
+        incr = 0,
+        items = [],
+        timeDelayFired = false,
+        hpItems = [],
+        lpItems = [],
+        allowLoad = true;
+      var obj = {
+        func: function (
+          name,
+          funcName,
+          parameters,
+          isBlock,
+          blockedBy,
+          deleteWhenComplete,
+          proceedIfError
+        ) {
+          var self = this;
+          this.name = name;
+          this.funcName = funcName;
+          this.parameters =
+            parameters === null ? null : parameters instanceof Array ? parameters : [parameters];
+          this.isBlock = isBlock;
+          this.blockedBy = blockedBy;
+          this.deleteWhenComplete = deleteWhenComplete;
+          this.isError = false;
+          this.isComplete = false;
+          this.isInitialized = false;
+          this.proceedIfError = proceedIfError;
+          this.isTimeDelay = false;
+          this.process = function () {
+            log('... func = ' + name);
+            self.isInitialized = true;
+            self.isComplete = true;
+            log('... func.apply: ' + name);
+            var funcs = self.funcName.split('.');
+            var func = null;
+            if (funcs.length > 3) {
+            } else if (funcs.length === 3) {
+              func = window[funcs[0]][funcs[1]][funcs[2]];
+            } else if (funcs.length === 2) {
+              func = window[funcs[0]][funcs[1]];
+            } else {
+              func = window[self.funcName];
+            }
+            if (typeof func !== 'undefined' && func !== null) {
+              func.apply(null, this.parameters);
+            }
+            if (self.deleteWhenComplete === true) delete items[name];
+            if (self.isBlock === true) {
+              log("----- F'D: " + self.name);
+              processAll();
+            }
+          };
+        },
+        file: function (name, path, isBlock, blockedBy, async, defer, proceedIfError) {
+          var self = this;
+          this.name = name;
+          this.path = path;
+          this.async = async;
+          this.defer = defer;
+          this.isBlock = isBlock;
+          this.blockedBy = blockedBy;
+          this.isInitialized = false;
+          this.isError = false;
+          this.isComplete = false;
+          this.proceedIfError = proceedIfError;
+          this.isTimeDelay = false;
+          this.process = function () {
+            self.isInitialized = true;
+            log('... file = ' + name);
+            var scr = document.createElement('script');
+            scr.src = path;
+            if (async === true) scr.async = true;
+            else if (defer === true) scr.defer = true;
+            scr.onerror = function () {
+              log("----- ERR'D: " + self.name);
+              self.isError = true;
               if (self.isBlock === true) {
-                log("----- F'D: " + self.name);
                 processAll();
               }
             };
-          },
-          file: function (name, path, isBlock, blockedBy, async, defer, proceedIfError) {
-            var self = this;
-            this.name = name;
-            this.path = path;
-            this.async = async;
-            this.defer = defer;
-            this.isBlock = isBlock;
-            this.blockedBy = blockedBy;
-            this.isInitialized = false;
-            this.isError = false;
-            this.isComplete = false;
-            this.proceedIfError = proceedIfError;
-            this.isTimeDelay = false;
-            this.process = function () {
-              self.isInitialized = true;
-              log('... file = ' + name);
-              var scr = document.createElement('script');
-              scr.src = path;
-              if (async === true) scr.async = true;
-              else if (defer === true) scr.defer = true;
-              scr.onerror = function () {
-                log("----- ERR'D: " + self.name);
-                self.isError = true;
+            scr.onreadystatechange = scr.onload = function () {
+              var state = scr.readyState;
+              log("----- F'D: " + self.name);
+              if (!state || /loaded|complete/.test(state)) {
+                self.isComplete = true;
                 if (self.isBlock === true) {
                   processAll();
                 }
-              };
-              scr.onreadystatechange = scr.onload = function () {
-                var state = scr.readyState;
-                log("----- F'D: " + self.name);
-                if (!state || /loaded|complete/.test(state)) {
-                  self.isComplete = true;
-                  if (self.isBlock === true) {
-                    processAll();
-                  }
-                }
-              };
-              document.getElementsByTagName('head')[0].appendChild(scr);
+              }
             };
+            document.getElementsByTagName('head')[0].appendChild(scr);
+          };
+        },
+        fileLoaded: function (name, isComplete) {
+          this.name = name;
+          this.path = '';
+          this.async = false;
+          this.defer = false;
+          this.isBlock = false;
+          this.blockedBy = [];
+          this.isInitialized = true;
+          this.isError = false;
+          this.isComplete = isComplete;
+          this.proceedIfError = false;
+          this.isTimeDelay = false;
+          this.process = function () { };
+        },
+      };
+      function init() {
+        window.addEventListener(
+          'load',
+          function () {
+            setTimeout(function () {
+              timeDelayFired = true;
+              log('TDELAY -----');
+              processAll();
+            }, 5000);
           },
-          fileLoaded: function (name, isComplete) {
-            this.name = name;
-            this.path = '';
-            this.async = false;
-            this.defer = false;
-            this.isBlock = false;
-            this.blockedBy = [];
-            this.isInitialized = true;
-            this.isError = false;
-            this.isComplete = isComplete;
-            this.proceedIfError = false;
-            this.isTimeDelay = false;
-            this.process = function () {};
-          },
-        };
-        function init() {
-          window.addEventListener(
-            'load',
-            function () {
-              setTimeout(function () {
-                timeDelayFired = true;
-                log('TDELAY -----');
-                processAll();
-              }, 5000);
-            },
-            false
-          );
+          false
+        );
+      }
+      function addFile(name, path, isBlock, blockedBy, async, defer, proceedIfError, priority) {
+        var item = new obj.file(name, path, isBlock, blockedBy, async, defer, proceedIfError);
+        if (priority === true) {
+          hpItems[name] = item;
+        } else {
+          lpItems[name] = item;
         }
-        function addFile(name, path, isBlock, blockedBy, async, defer, proceedIfError, priority) {
-          var item = new obj.file(name, path, isBlock, blockedBy, async, defer, proceedIfError);
-          if (priority === true) {
-            hpItems[name] = item;
-          } else {
-            lpItems[name] = item;
-          }
-          items[name] = item;
-          checkIfBlocked(item);
-        }
-        function setallowLoad(settobool) {
-          allowLoad = settobool;
-        }
-        function addFunc(
+        items[name] = item;
+        checkIfBlocked(item);
+      }
+      function setallowLoad(settobool) {
+        allowLoad = settobool;
+      }
+      function addFunc(
+        name,
+        func,
+        parameters,
+        isBlock,
+        blockedBy,
+        autoInc,
+        deleteWhenComplete,
+        proceedIfError,
+        priority
+      ) {
+        if (autoInc === true) name = name + '_' + incr++;
+        var item = new obj.func(
           name,
           func,
           parameters,
           isBlock,
           blockedBy,
-          autoInc,
           deleteWhenComplete,
-          proceedIfError,
-          priority
-        ) {
-          if (autoInc === true) name = name + '_' + incr++;
-          var item = new obj.func(
-            name,
-            func,
-            parameters,
-            isBlock,
-            blockedBy,
-            deleteWhenComplete,
-            proceedIfError
-          );
-          if (priority === true) {
-            hpItems[name] = item;
-          } else {
-            lpItems[name] = item;
-          }
-          items[name] = item;
-          checkIfBlocked(item);
-        }
-        function addTimeDelayFile(name, path) {
-          var item = new obj.file(name, path, false, [], false, false, true);
-          item.isTimeDelay = true;
-          log(name + ' ... ' + ' FILE! TDELAY');
+          proceedIfError
+        );
+        if (priority === true) {
+          hpItems[name] = item;
+        } else {
           lpItems[name] = item;
-          items[name] = item;
-          checkIfBlocked(item);
         }
-        function addTimeDelayFunc(name, func, parameters) {
-          var item = new obj.func(name, func, parameters, false, [], true, true);
-          item.isTimeDelay = true;
-          log(name + ' ... ' + ' FUNCTION! TDELAY');
-          lpItems[name] = item;
-          items[name] = item;
-          checkIfBlocked(item);
+        items[name] = item;
+        checkIfBlocked(item);
+      }
+      function addTimeDelayFile(name, path) {
+        var item = new obj.file(name, path, false, [], false, false, true);
+        item.isTimeDelay = true;
+        log(name + ' ... ' + ' FILE! TDELAY');
+        lpItems[name] = item;
+        items[name] = item;
+        checkIfBlocked(item);
+      }
+      function addTimeDelayFunc(name, func, parameters) {
+        var item = new obj.func(name, func, parameters, false, [], true, true);
+        item.isTimeDelay = true;
+        log(name + ' ... ' + ' FUNCTION! TDELAY');
+        lpItems[name] = item;
+        items[name] = item;
+        checkIfBlocked(item);
+      }
+      function checkIfBlocked(item) {
+        if (isBlocked(item) === true || allowLoad == false) return;
+        item.process();
+      }
+      function isBlocked(item) {
+        if (item.isTimeDelay === true && timeDelayFired === false) {
+          log(item.name + ' blocked = TIME DELAY!');
+          return true;
         }
-        function checkIfBlocked(item) {
-          if (isBlocked(item) === true || allowLoad == false) return;
-          item.process();
-        }
-        function isBlocked(item) {
-          if (item.isTimeDelay === true && timeDelayFired === false) {
-            log(item.name + ' blocked = TIME DELAY!');
-            return true;
-          }
-          if (item.blockedBy instanceof Array) {
-            for (var i = 0; i < item.blockedBy.length; i++) {
-              var block = item.blockedBy[i];
-              if (items.hasOwnProperty(block) === false) {
-                log(item.name + ' blocked = ' + block);
-                return true;
-              } else if (item.proceedIfError === true && items[block].isError === true) {
-                return false;
-              } else if (items[block].isComplete === false) {
-                log(item.name + ' blocked = ' + block);
-                return true;
-              }
+        if (item.blockedBy instanceof Array) {
+          for (var i = 0; i < item.blockedBy.length; i++) {
+            var block = item.blockedBy[i];
+            if (items.hasOwnProperty(block) === false) {
+              log(item.name + ' blocked = ' + block);
+              return true;
+            } else if (item.proceedIfError === true && items[block].isError === true) {
+              return false;
+            } else if (items[block].isComplete === false) {
+              log(item.name + ' blocked = ' + block);
+              return true;
             }
           }
-          return false;
         }
-        function markLoaded(filename) {
-          if (!filename || 0 === filename.length) {
-            return;
+        return false;
+      }
+      function markLoaded(filename) {
+        if (!filename || 0 === filename.length) {
+          return;
+        }
+        if (filename in items) {
+          var item = items[filename];
+          if (item.isComplete === true) {
+            log(item.name + ' ' + filename + ': error loaded duplicate');
+          } else {
+            item.isComplete = true;
+            item.isInitialized = true;
           }
-          if (filename in items) {
-            var item = items[filename];
-            if (item.isComplete === true) {
-              log(item.name + ' ' + filename + ': error loaded duplicate');
-            } else {
-              item.isComplete = true;
-              item.isInitialized = true;
+        } else {
+          items[filename] = new obj.fileLoaded(filename, true);
+        }
+        log('markLoaded dummyfile: ' + items[filename].name);
+      }
+      function logWhatsBlocked() {
+        for (var i in items) {
+          if (items.hasOwnProperty(i) === false) continue;
+          var item = items[i];
+          isBlocked(item);
+        }
+      }
+      function log(msg) {
+        var href = window.location.href;
+        var reg = new RegExp('[?&]ezq=([^&#]*)', 'i');
+        var string = reg.exec(href);
+        var res = string ? string[1] : null;
+        if (res === '1') console.debug(msg);
+      }
+      function processAll() {
+        count++;
+        if (count > 200) return;
+        log("let's go");
+        processItems(hpItems);
+        processItems(lpItems);
+      }
+      function processItems(list) {
+        for (var i in list) {
+          if (list.hasOwnProperty(i) === false) continue;
+          var item = list[i];
+          if (
+            item.isComplete === true ||
+            isBlocked(item) ||
+            item.isInitialized === true ||
+            item.isError === true
+          ) {
+            if (item.isError === true) {
+              log(item.name + ': error');
+            } else if (item.isComplete === true) {
+              log(item.name + ': complete already');
+            } else if (item.isInitialized === true) {
+              log(item.name + ': initialized already');
             }
           } else {
-            items[filename] = new obj.fileLoaded(filename, true);
-          }
-          log('markLoaded dummyfile: ' + items[filename].name);
-        }
-        function logWhatsBlocked() {
-          for (var i in items) {
-            if (items.hasOwnProperty(i) === false) continue;
-            var item = items[i];
-            isBlocked(item);
+            item.process();
           }
         }
-        function log(msg) {
-          var href = window.location.href;
-          var reg = new RegExp('[?&]ezq=([^&#]*)', 'i');
-          var string = reg.exec(href);
-          var res = string ? string[1] : null;
-          if (res === '1') console.debug(msg);
-        }
-        function processAll() {
-          count++;
-          if (count > 200) return;
-          log("let's go");
-          processItems(hpItems);
-          processItems(lpItems);
-        }
-        function processItems(list) {
-          for (var i in list) {
-            if (list.hasOwnProperty(i) === false) continue;
-            var item = list[i];
-            if (
-              item.isComplete === true ||
-              isBlocked(item) ||
-              item.isInitialized === true ||
-              item.isError === true
-            ) {
-              if (item.isError === true) {
-                log(item.name + ': error');
-              } else if (item.isComplete === true) {
-                log(item.name + ': complete already');
-              } else if (item.isInitialized === true) {
-                log(item.name + ': initialized already');
-              }
-            } else {
-              item.process();
-            }
-          }
-        }
-        init();
-        return {
-          addFile: addFile,
-          addDelayFile: addTimeDelayFile,
-          addFunc: addFunc,
-          addDelayFunc: addTimeDelayFunc,
-          items: items,
-          processAll: processAll,
-          setallowLoad: setallowLoad,
-          markLoaded: markLoaded,
-          logWhatsBlocked: logWhatsBlocked,
-        };
-      })();
-      (__ez.evt.add = function (e, t, n) {
-        e.addEventListener
-          ? e.addEventListener(t, n, !1)
-          : e.attachEvent
+      }
+      init();
+      return {
+        addFile: addFile,
+        addDelayFile: addTimeDelayFile,
+        addFunc: addFunc,
+        addDelayFunc: addTimeDelayFunc,
+        items: items,
+        processAll: processAll,
+        setallowLoad: setallowLoad,
+        markLoaded: markLoaded,
+        logWhatsBlocked: logWhatsBlocked,
+      };
+    })();
+    (__ez.evt.add = function (e, t, n) {
+      e.addEventListener
+        ? e.addEventListener(t, n, !1)
+        : e.attachEvent
           ? e.attachEvent('on' + t, n)
           : (e['on' + t] = n());
-      }),
-        (__ez.evt.remove = function (e, t, n) {
-          e.removeEventListener
-            ? e.removeEventListener(t, n, !1)
-            : e.detachEvent
+    }),
+      (__ez.evt.remove = function (e, t, n) {
+        e.removeEventListener
+          ? e.removeEventListener(t, n, !1)
+          : e.detachEvent
             ? e.detachEvent('on' + t, n)
             : delete e['on' + t];
-        });
-      __ez.script.add = function (e) {
-        var t = document.createElement('script');
-        (t.src = e),
-          (t.async = !0),
-          (t.type = 'text/javascript'),
-          document.getElementsByTagName('head')[0].appendChild(t);
-      };
-      __ez.dot = {};
-      __ez.vep = (function () {
-        var pixels = [],
-          pxURL = '/detroitchicago/grapefruit.gif';
-        function AddPixel(vID, pixelData) {
-          if (__ez.dot.isDefined(vID) && __ez.dot.isValid(pixelData)) {
+      });
+    __ez.script.add = function (e) {
+      var t = document.createElement('script');
+      (t.src = e),
+        (t.async = !0),
+        (t.type = 'text/javascript'),
+        document.getElementsByTagName('head')[0].appendChild(t);
+    };
+    __ez.dot = {};
+    __ez.vep = (function () {
+      var pixels = [],
+        pxURL = '/detroitchicago/grapefruit.gif';
+      function AddPixel(vID, pixelData) {
+        if (__ez.dot.isDefined(vID) && __ez.dot.isValid(pixelData)) {
+          pixels.push({
+            type: 'video',
+            video_impression_id: vID,
+            domain_id: __ez.dot.getDID(),
+            t_epoch: __ez.dot.getEpoch(0),
+            data: __ez.dot.dataToStr(pixelData),
+          });
+        }
+      }
+      function Fire() {
+        if (
+          typeof document.visibilityState !== 'undefined' &&
+          document.visibilityState === 'prerender'
+        ) {
+          return;
+        }
+        if (__ez.dot.isDefined(pixels) && pixels.length > 0) {
+          while (pixels.length > 0) {
+            var j = 5;
+            if (j > pixels.length) {
+              j = pixels.length;
+            }
+            var pushPixels = pixels.splice(0, j);
+            var pixelURL =
+              __ez.dot.getURL(pxURL) +
+              '?orig=' +
+              (__ez.template.isOrig === true ? 1 : 0) +
+              '&v=' +
+              btoa(JSON.stringify(pushPixels));
+            __ez.dot.Fire(pixelURL);
+          }
+        }
+        pixels = [];
+      }
+      return { Add: AddPixel, Fire: Fire };
+    })();
+  </script>
+  <script data-ezscrex="false" data-cfasync="false" data-pagespeed-no-defer="">
+    __ez.pel = (function () {
+      var pixels = [],
+        pxURL = '/porpoiseant/army.gif';
+      function AddAndFirePixel(adSlot, pixelData) {
+        AddPixel(adSlot, pixelData, 0, 0, 0, 0, 0);
+        Fire();
+      }
+      function AddAndFireOrigPixel(adSlot, pixelData) {
+        AddPixel(adSlot, pixelData, 0, 0, 0, 0, 0, true);
+        Fire();
+      }
+      function GetCurrentPixels() {
+        return pixels;
+      }
+      function AddPixel(
+        adSlot,
+        pixelData,
+        revenue,
+        est_revenue,
+        bid_floor_filled,
+        bid_floor_prev,
+        stat_source_id,
+        isOrig
+      ) {
+        if (
+          !__ez.dot.isDefined(adSlot) ||
+          __ez.dot.isAnyDefined(adSlot.getSlotElementId, adSlot.ElementId) == false
+        ) {
+          return;
+        }
+        if (typeof isOrig === 'undefined') {
+          isOrig = false;
+        }
+        var ad_position_id = parseInt(__ez.dot.getTargeting(adSlot, 'ap'));
+        var impId = __ez.dot.getSlotIID(adSlot),
+          adUnit = __ez.dot.getAdUnit(adSlot, isOrig);
+        var compId = parseInt(__ez.dot.getTargeting(adSlot, 'compid'));
+        var lineItemId = 0;
+        var creativeId = 0;
+        var ezimData = getEzimData(adSlot);
+        if (typeof ezimData == 'object') {
+          if (ezimData.creative_id !== undefined) {
+            creativeId = ezimData.creative_id;
+          }
+          if (ezimData.line_item_id !== undefined) {
+            lineItemId = ezimData.line_item_id;
+          }
+        }
+        if (__ez.dot.isDefined(impId, adUnit) && __ez.dot.isValid(pixelData)) {
+          if ((impId !== '0' || isOrig === true) && adUnit !== '') {
             pixels.push({
-              type: 'video',
-              video_impression_id: vID,
+              type: 'impression',
+              impression_id: impId,
               domain_id: __ez.dot.getDID(),
+              unit: adUnit,
               t_epoch: __ez.dot.getEpoch(0),
+              revenue: revenue,
+              est_revenue: est_revenue,
+              ad_position: ad_position_id,
+              ad_size: '',
+              bid_floor_filled: bid_floor_filled,
+              bid_floor_prev: bid_floor_prev,
+              stat_source_id: stat_source_id,
+              country_code: __ez.dot.getCC(),
+              pageview_id: __ez.dot.getPageviewId(),
+              comp_id: compId,
+              line_item_id: lineItemId,
+              creative_id: creativeId,
               data: __ez.dot.dataToStr(pixelData),
+              is_orig: isOrig || __ez.template.isOrig,
             });
           }
         }
-        function Fire() {
-          if (
-            typeof document.visibilityState !== 'undefined' &&
-            document.visibilityState === 'prerender'
-          ) {
-            return;
+      }
+      function AddPixelById(impFullId, pixelData, isOrig, revenue) {
+        var vals = impFullId.split('/');
+        if (__ez.dot.isDefined(impFullId) && vals.length === 3 && __ez.dot.isValid(pixelData)) {
+          var adUnit = vals[0],
+            impId = vals[2];
+          var pix = {
+            type: 'impression',
+            impression_id: impId,
+            domain_id: __ez.dot.getDID(),
+            unit: adUnit,
+            t_epoch: __ez.dot.getEpoch(0),
+            pageview_id: __ez.dot.getPageviewId(),
+            data: __ez.dot.dataToStr(pixelData),
+            is_orig: isOrig || __ez.template.isOrig,
+          };
+          if (typeof revenue !== 'undefined') {
+            pix.revenue = revenue;
           }
-          if (__ez.dot.isDefined(pixels) && pixels.length > 0) {
+          pixels.push(pix);
+        }
+      }
+      function Fire() {
+        if (
+          typeof document.visibilityState !== 'undefined' &&
+          document.visibilityState === 'prerender'
+        )
+          return;
+        if (__ez.dot.isDefined(pixels) && pixels.length > 0) {
+          var allPixels = [
+            pixels.filter(function (pixel) {
+              return pixel.is_orig;
+            }),
+            pixels.filter(function (pixel) {
+              return !pixel.is_orig;
+            }),
+          ];
+          allPixels.forEach(function (pixels) {
             while (pixels.length > 0) {
+              var isOrig = pixels[0].is_orig || false;
               var j = 5;
               if (j > pixels.length) {
                 j = pixels.length;
@@ -343,425 +477,294 @@
               var pixelURL =
                 __ez.dot.getURL(pxURL) +
                 '?orig=' +
-                (__ez.template.isOrig === true ? 1 : 0) +
-                '&v=' +
+                (isOrig === true ? 1 : 0) +
+                '&sts=' +
                 btoa(JSON.stringify(pushPixels));
+              if (
+                typeof window.isAmp !== 'undefined' &&
+                isAmp &&
+                typeof window._ezaq !== 'undefined' &&
+                _ezaq.hasOwnProperty('domain_id')
+              ) {
+                pixelURL += '&visit_uuid=' + _ezaq['visit_uuid'];
+              }
               __ez.dot.Fire(pixelURL);
             }
-          }
-          pixels = [];
+          });
         }
-        return { Add: AddPixel, Fire: Fire };
-      })();
-    </script>
-    <script data-ezscrex="false" data-cfasync="false" data-pagespeed-no-defer="">
-      __ez.pel = (function () {
-        var pixels = [],
-          pxURL = '/porpoiseant/army.gif';
-        function AddAndFirePixel(adSlot, pixelData) {
-          AddPixel(adSlot, pixelData, 0, 0, 0, 0, 0);
-          Fire();
-        }
-        function AddAndFireOrigPixel(adSlot, pixelData) {
-          AddPixel(adSlot, pixelData, 0, 0, 0, 0, 0, true);
-          Fire();
-        }
-        function GetCurrentPixels() {
-          return pixels;
-        }
-        function AddPixel(
-          adSlot,
-          pixelData,
-          revenue,
-          est_revenue,
-          bid_floor_filled,
-          bid_floor_prev,
-          stat_source_id,
-          isOrig
-        ) {
-          if (
-            !__ez.dot.isDefined(adSlot) ||
-            __ez.dot.isAnyDefined(adSlot.getSlotElementId, adSlot.ElementId) == false
-          ) {
-            return;
-          }
-          if (typeof isOrig === 'undefined') {
-            isOrig = false;
-          }
-          var ad_position_id = parseInt(__ez.dot.getTargeting(adSlot, 'ap'));
-          var impId = __ez.dot.getSlotIID(adSlot),
-            adUnit = __ez.dot.getAdUnit(adSlot, isOrig);
-          var compId = parseInt(__ez.dot.getTargeting(adSlot, 'compid'));
-          var lineItemId = 0;
-          var creativeId = 0;
-          var ezimData = getEzimData(adSlot);
-          if (typeof ezimData == 'object') {
-            if (ezimData.creative_id !== undefined) {
-              creativeId = ezimData.creative_id;
-            }
-            if (ezimData.line_item_id !== undefined) {
-              lineItemId = ezimData.line_item_id;
-            }
-          }
-          if (__ez.dot.isDefined(impId, adUnit) && __ez.dot.isValid(pixelData)) {
-            if ((impId !== '0' || isOrig === true) && adUnit !== '') {
-              pixels.push({
-                type: 'impression',
-                impression_id: impId,
-                domain_id: __ez.dot.getDID(),
-                unit: adUnit,
-                t_epoch: __ez.dot.getEpoch(0),
-                revenue: revenue,
-                est_revenue: est_revenue,
-                ad_position: ad_position_id,
-                ad_size: '',
-                bid_floor_filled: bid_floor_filled,
-                bid_floor_prev: bid_floor_prev,
-                stat_source_id: stat_source_id,
-                country_code: __ez.dot.getCC(),
-                pageview_id: __ez.dot.getPageviewId(),
-                comp_id: compId,
-                line_item_id: lineItemId,
-                creative_id: creativeId,
-                data: __ez.dot.dataToStr(pixelData),
-                is_orig: isOrig || __ez.template.isOrig,
-              });
-            }
-          }
-        }
-        function AddPixelById(impFullId, pixelData, isOrig, revenue) {
-          var vals = impFullId.split('/');
-          if (__ez.dot.isDefined(impFullId) && vals.length === 3 && __ez.dot.isValid(pixelData)) {
-            var adUnit = vals[0],
-              impId = vals[2];
-            var pix = {
-              type: 'impression',
-              impression_id: impId,
-              domain_id: __ez.dot.getDID(),
-              unit: adUnit,
-              t_epoch: __ez.dot.getEpoch(0),
-              pageview_id: __ez.dot.getPageviewId(),
-              data: __ez.dot.dataToStr(pixelData),
-              is_orig: isOrig || __ez.template.isOrig,
-            };
-            if (typeof revenue !== 'undefined') {
-              pix.revenue = revenue;
-            }
-            pixels.push(pix);
-          }
-        }
-        function Fire() {
-          if (
-            typeof document.visibilityState !== 'undefined' &&
-            document.visibilityState === 'prerender'
-          )
-            return;
-          if (__ez.dot.isDefined(pixels) && pixels.length > 0) {
-            var allPixels = [
-              pixels.filter(function (pixel) {
-                return pixel.is_orig;
-              }),
-              pixels.filter(function (pixel) {
-                return !pixel.is_orig;
-              }),
-            ];
-            allPixels.forEach(function (pixels) {
-              while (pixels.length > 0) {
-                var isOrig = pixels[0].is_orig || false;
-                var j = 5;
-                if (j > pixels.length) {
-                  j = pixels.length;
-                }
-                var pushPixels = pixels.splice(0, j);
-                var pixelURL =
-                  __ez.dot.getURL(pxURL) +
-                  '?orig=' +
-                  (isOrig === true ? 1 : 0) +
-                  '&sts=' +
-                  btoa(JSON.stringify(pushPixels));
-                if (
-                  typeof window.isAmp !== 'undefined' &&
-                  isAmp &&
-                  typeof window._ezaq !== 'undefined' &&
-                  _ezaq.hasOwnProperty('domain_id')
-                ) {
-                  pixelURL += '&visit_uuid=' + _ezaq['visit_uuid'];
-                }
-                __ez.dot.Fire(pixelURL);
-              }
-            });
-          }
-          pixels = [];
-        }
-        function getEzimData(adSlot) {
-          if (typeof _ezim_d == 'undefined') {
-            return false;
-          }
-          var adUnitName = __ez.dot.getAdUnitPath(adSlot).split('/').pop();
-          if (typeof _ezim_d === 'object' && _ezim_d.hasOwnProperty(adUnitName)) {
-            return _ezim_d[adUnitName];
-          }
-          for (var ezimKey in _ezim_d) {
-            if (ezimKey.split('/').pop() === adUnitName) {
-              return _ezim_d[ezimKey];
-            }
-          }
+        pixels = [];
+      }
+      function getEzimData(adSlot) {
+        if (typeof _ezim_d == 'undefined') {
           return false;
         }
-        return {
-          Add: AddPixel,
-          AddAndFire: AddAndFirePixel,
-          AddAndFireOrig: AddAndFireOrigPixel,
-          AddById: AddPixelById,
-          Fire: Fire,
-          GetPixels: GetCurrentPixels,
-        };
-      })();
-    </script>
-    <!-- basic -->
-
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <!-- mobile metas -->
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="viewport" content="initial-scale=1, maximum-scale=1" />
-    <!-- site metas -->
-    <title>Blogging</title>
-    <meta name="keywords" content="" />
-    <meta name="description" content="" />
-    <meta name="author" content="" />
-    <!-- bootstrap css -->
-    <link rel="stylesheet" href="static/css/bootstrap.min.css" />
-    <!-- style css -->
-    <link rel="stylesheet" href="static/css/style.css" />
-    <!-- Responsive-->
-    <link rel="stylesheet" href="static/css/responsive.css" />
-    <!-- fevicon -->
-
-    <!-- Tweaks for older IEs-->
-    <link rel="stylesheet" href="static/css/owl.carousel.min.css" />
-    <link rel="stylesheet" href="static/css/font-awesome.css" />
-    <link rel="stylesheet" href="static/css/bootstrap-datepicker.min.css" />
-
-    <link rel="canonical" href="" />
-    <script type="text/javascript">
-      var ezouid = '1';
-    </script>
-    <script type="text/javascript">
-      var ezoTemplate = 'old_site_noads';
-      if (typeof ezouid == 'undefined') {
-        var ezouid = 'none';
-      }
-      var ezoFormfactor = '1';
-      var ezo_elements_to_check = Array();
-    </script>
-    <!-- START EZHEAD -->
-    <script data-ezscrex="false" type="text/javascript">
-      var soc_app_id = '0';
-      var did = 317139;
-      var ezdomain = 'html.design';
-      var ezoicSearchable = 1;
-    </script>
-    <!--{jquery}-->
-    <!-- END EZHEAD -->
-    <script data-ezscrex="false" type="text/javascript" data-cfasync="false">
-      var _ezaq = {
-        ad_cache_level: 0,
-        ad_lazyload_version: 0,
-        ad_load_version: 0,
-        city: 'Aoguan',
-        country: 'CN',
-        days_since_last_visit: -1,
-        domain_id: 317139,
-        engaged_time_visit: 0,
-        ezcache_level: 2,
-        ezcache_skip_code: 0,
-        form_factor_id: 1,
-        framework_id: 1,
-        is_return_visitor: false,
-        is_sitespeed: 0,
-        last_page_load: '',
-        last_pageview_id: '',
-        lt_cache_level: 0,
-        metro_code: 0,
-        page_ad_positions: '',
-        page_view_count: 0,
-        page_view_id: 'c8236828-cf8c-4f2d-4d1f-96a40bf5f89f',
-        position_selection_id: 0,
-        postal_code: '',
-        pv_event_count: 0,
-        response_size_orig: 21601,
-        response_time_orig: 3,
-        serverid: '54.214.122.155:2455',
-        state: 'FJ',
-        t_epoch: 1652687801,
-        template_id: 120,
-        time_on_site_visit: 0,
-        url: '#',
-        user_id: 0,
-        weather_precipitation: 0,
-        weather_summary: '',
-        weather_temperature: 0,
-        word_count: 472,
-        worst_bad_word_level: 0,
-      };
-      var _ezExtraQueries = '&ez_orig=1';
-    </script>
-    <script data-ezscrex="false" data-pagespeed-no-defer="" data-cfasync="false">
-      function create_ezolpl(pvID, rv) {
-        var d = new Date();
-        d.setTime(d.getTime() + 365 * 24 * 60 * 60 * 1000);
-        var expires = 'expires=' + d.toUTCString();
-        __ez.ck.setByCat(
-          'ezux_lpl_317139=' + new Date().getTime() + '|' + pvID + '|' + rv + '; ' + expires,
-          3
-        );
-      }
-      function attach_ezolpl(pvID, rv) {
-        if (document.readyState === 'complete') {
-          create_ezolpl(pvID, rv);
+        var adUnitName = __ez.dot.getAdUnitPath(adSlot).split('/').pop();
+        if (typeof _ezim_d === 'object' && _ezim_d.hasOwnProperty(adUnitName)) {
+          return _ezim_d[adUnitName];
         }
-        if (window.attachEvent) {
-          window.attachEvent('onload', create_ezolpl, pvID, rv);
-        } else {
-          if (window.onload) {
-            var curronload = window.onload;
-            var newonload = function (evt) {
-              curronload(evt);
-              create_ezolpl(pvID, rv);
-            };
-            window.onload = newonload;
-          } else {
-            window.onload = create_ezolpl.bind(null, pvID, rv);
+        for (var ezimKey in _ezim_d) {
+          if (ezimKey.split('/').pop() === adUnitName) {
+            return _ezim_d[ezimKey];
           }
         }
+        return false;
       }
+      return {
+        Add: AddPixel,
+        AddAndFire: AddAndFirePixel,
+        AddAndFireOrig: AddAndFireOrigPixel,
+        AddById: AddPixelById,
+        Fire: Fire,
+        GetPixels: GetCurrentPixels,
+      };
+    })();
+  </script>
+  <!-- basic -->
 
-      __ez.queue.addFunc(
-        'attach_ezolpl',
-        'attach_ezolpl',
-        ['c8236828-cf8c-4f2d-4d1f-96a40bf5f89f', 'false'],
-        false,
-        ['/detroitchicago/boise.js'],
-        true,
-        false,
-        false,
-        false
-      );
-    </script>
-    <script type="text/javascript">
-      var _audins_dom = 'html_design',
-        _audins_did = 317139;
-      __ez.queue.addFile(
-        '/detroitchicago/cmbv2.js',
-        '/detroitchicago/cmbv2.js?gcb=195-0&cb=04-1y02-5y06-12y07-1y19-5y0b-5y0d-14y13-3y17-4y1c-2y21-3y2d-2y55-1&cmbcb=67&sj=x04x02x06x07x19x0bx0dx13x17x1cx21x2dx55&abt=BidFloorMethod,BidFloorsubVersion',
-        true,
-        [],
-        true,
-        false,
-        true,
-        false
-      );
-    </script>
-    <script type="text/javascript" defer="">
-      __ez.queue.addFile(
-        '/detroitchicago/cmbdv2.js',
-        '/detroitchicago/cmbdv2.js?gcb=195-0&cb=03-5y0c-5y18-4&cmbcb=67&sj=x03x0cx18&abt=BidFloorMethod,BidFloorsubVersion',
-        true,
-        ['/detroitchicago/cmbv2.js'],
-        true,
-        false,
-        true,
-        false
-      );
-    </script>
-  </head>
-  <!-- body -->
-  <body class="main-layout">
-    <!-- loader  -->
-    <div class="loader_bg">
-      <div class="loader"><img src="static/picture/loading.gif" alt="#" /></div>
-    </div>
-    <!-- end loader -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <!-- mobile metas -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1" />
+  <!-- site metas -->
+  <title>Blogging</title>
+  <meta name="keywords" content="" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+  <!-- bootstrap css -->
+  <link rel="stylesheet" href="static/css/bootstrap.min.css" />
+  <!-- style css -->
+  <link rel="stylesheet" href="static/css/style.css" />
+  <!-- Responsive-->
+  <link rel="stylesheet" href="static/css/responsive.css" />
+  <!-- fevicon -->
 
-    <!-- header -->
-    <header class="header-area">
-      <div class="container">
-        <div class="row d_flex">
-          <div class="col-md-12">
-            <div class="header_top">
-              <div class="row">
-                <div class="col-md-4 col-sm-12">
-                  <div class="logo">
-                    <a href="">寻根鱼文化，非遗我传承 </a>
-                  </div>
+  <!-- Tweaks for older IEs-->
+  <link rel="stylesheet" href="static/css/owl.carousel.min.css" />
+  <link rel="stylesheet" href="static/css/font-awesome.css" />
+  <link rel="stylesheet" href="static/css/bootstrap-datepicker.min.css" />
+
+  <link rel="canonical" href="" />
+  <script type="text/javascript">
+    var ezouid = '1';
+  </script>
+  <script type="text/javascript">
+    var ezoTemplate = 'old_site_noads';
+    if (typeof ezouid == 'undefined') {
+      var ezouid = 'none';
+    }
+    var ezoFormfactor = '1';
+    var ezo_elements_to_check = Array();
+  </script>
+  <!-- START EZHEAD -->
+  <script data-ezscrex="false" type="text/javascript">
+    var soc_app_id = '0';
+    var did = 317139;
+    var ezdomain = 'html.design';
+    var ezoicSearchable = 1;
+  </script>
+  <!--{jquery}-->
+  <!-- END EZHEAD -->
+  <script data-ezscrex="false" type="text/javascript" data-cfasync="false">
+    var _ezaq = {
+      ad_cache_level: 0,
+      ad_lazyload_version: 0,
+      ad_load_version: 0,
+      city: 'Aoguan',
+      country: 'CN',
+      days_since_last_visit: -1,
+      domain_id: 317139,
+      engaged_time_visit: 0,
+      ezcache_level: 2,
+      ezcache_skip_code: 0,
+      form_factor_id: 1,
+      framework_id: 1,
+      is_return_visitor: false,
+      is_sitespeed: 0,
+      last_page_load: '',
+      last_pageview_id: '',
+      lt_cache_level: 0,
+      metro_code: 0,
+      page_ad_positions: '',
+      page_view_count: 0,
+      page_view_id: 'c8236828-cf8c-4f2d-4d1f-96a40bf5f89f',
+      position_selection_id: 0,
+      postal_code: '',
+      pv_event_count: 0,
+      response_size_orig: 21601,
+      response_time_orig: 3,
+      serverid: '54.214.122.155:2455',
+      state: 'FJ',
+      t_epoch: 1652687801,
+      template_id: 120,
+      time_on_site_visit: 0,
+      url: '#',
+      user_id: 0,
+      weather_precipitation: 0,
+      weather_summary: '',
+      weather_temperature: 0,
+      word_count: 472,
+      worst_bad_word_level: 0,
+    };
+    var _ezExtraQueries = '&ez_orig=1';
+  </script>
+  <script data-ezscrex="false" data-pagespeed-no-defer="" data-cfasync="false">
+    function create_ezolpl(pvID, rv) {
+      var d = new Date();
+      d.setTime(d.getTime() + 365 * 24 * 60 * 60 * 1000);
+      var expires = 'expires=' + d.toUTCString();
+      __ez.ck.setByCat(
+        'ezux_lpl_317139=' + new Date().getTime() + '|' + pvID + '|' + rv + '; ' + expires,
+        3
+      );
+    }
+    function attach_ezolpl(pvID, rv) {
+      if (document.readyState === 'complete') {
+        create_ezolpl(pvID, rv);
+      }
+      if (window.attachEvent) {
+        window.attachEvent('onload', create_ezolpl, pvID, rv);
+      } else {
+        if (window.onload) {
+          var curronload = window.onload;
+          var newonload = function (evt) {
+            curronload(evt);
+            create_ezolpl(pvID, rv);
+          };
+          window.onload = newonload;
+        } else {
+          window.onload = create_ezolpl.bind(null, pvID, rv);
+        }
+      }
+    }
+
+    __ez.queue.addFunc(
+      'attach_ezolpl',
+      'attach_ezolpl',
+      ['c8236828-cf8c-4f2d-4d1f-96a40bf5f89f', 'false'],
+      false,
+      ['/detroitchicago/boise.js'],
+      true,
+      false,
+      false,
+      false
+    );
+  </script>
+  <script type="text/javascript">
+    var _audins_dom = 'html_design',
+      _audins_did = 317139;
+    __ez.queue.addFile(
+      '/detroitchicago/cmbv2.js',
+      '/detroitchicago/cmbv2.js?gcb=195-0&cb=04-1y02-5y06-12y07-1y19-5y0b-5y0d-14y13-3y17-4y1c-2y21-3y2d-2y55-1&cmbcb=67&sj=x04x02x06x07x19x0bx0dx13x17x1cx21x2dx55&abt=BidFloorMethod,BidFloorsubVersion',
+      true,
+      [],
+      true,
+      false,
+      true,
+      false
+    );
+  </script>
+  <script type="text/javascript" defer="">
+    __ez.queue.addFile(
+      '/detroitchicago/cmbdv2.js',
+      '/detroitchicago/cmbdv2.js?gcb=195-0&cb=03-5y0c-5y18-4&cmbcb=67&sj=x03x0cx18&abt=BidFloorMethod,BidFloorsubVersion',
+      true,
+      ['/detroitchicago/cmbv2.js'],
+      true,
+      false,
+      true,
+      false
+    );
+  </script>
+</head>
+<!-- body -->
+
+<body class="main-layout">
+  <!-- loader  -->
+  <div class="loader_bg">
+    <div class="loader"><img src="static/picture/loading.gif" alt="#" /></div>
+  </div>
+  <!-- end loader -->
+
+  <!-- header -->
+  <header class="header-area">
+    <div class="container">
+      <div class="row d_flex">
+        <div class="col-md-12">
+          <div class="header_top">
+            <div class="row">
+              <div class="col-md-4 col-sm-12">
+                <div class="logo">
+                  <a href="">寻根鱼文化，非遗我传承 </a>
                 </div>
               </div>
             </div>
           </div>
-          <div class="col-md-12 col-sm-12">
-            <div class="navbar-area">
-              <nav class="site-navbar">
-                <ul>
-                  <li><a  href="index.html">首页</a></li>
-                  <li><a   href="ziyuan.html">资源</a></li>
-                  <li><a class="active" href="xingtai.html">种类</a></li>
-                  <li><a href="meishi.html">美食</a></li>
-                  <li><a href="gongyi.html">工艺</a></li>
-                  <li><a href="lishi.html">历史</a></li>
-                  <li><a href="chanye.html">产业</a></li>
-                  <li><a href="wenyi.html">文艺</a></li>
-                  <li><a href="xuesheng.html">学生风采</a></li>
-                </ul>
-              </nav>
-            </div>
+        </div>
+        <div class="col-md-12 col-sm-12">
+          <div class="navbar-area">
+            <nav class="site-navbar">
+              <ul>
+                <li><a href="index.html">首页</a></li>
+                <li><a href="ziyuan.html">鱼灯的文化</a></li>
+                <li><a class="active" href="xingtai.html">鱼灯的制作</a></li>
+                <li><a href="meishi.html">鱼灯的优化</a></li>
+                <li><a href="gongyi.html">鱼灯的推广</a></li>
+              </ul>
+            </nav>
           </div>
         </div>
       </div>
-    </header>
-    <!-- end header inner -->
-    <!-- banner -->
-    <div class="full_bg" style="margin-top: 100px">
-      <h2 style="text-align: center; padding-top: 50px">鱼的丰富种类</h2>
-      <p style="text-indent:30px;">
-        曾经，顺德人主要养殖传统的青草鲢鳙四大家鱼，后随着市场的需要及经济效益，将养殖种类调整为名优新特品种，主要品种如乌鳢、加州鲈、鳜鱼、褐塘鱼、鳗鱼、黄颡鱼、长吻鮠、斑点叉尾鮰
-        、广东鲂、河豚以及中华鳖等。
-      </p>
-
-      <h2 style="text-align: center; padding-top: 50px">青鱼</h2>
-      <p style="text-indent:30px;">
-        青鱼是鲤科、青鱼属鱼类。体长可达145厘米。体长为体高的3.3～4.1倍，为头长的3.5～4.4倍，体粗壮，近圆筒形，腹部圆，无腹棱。背鳍位于腹鳍的上方，无硬刺，外缘平直。体呈青灰色，背部较深，腹部灰白色，鳍均呈黑色。个体大，最大可达70余千克。青鱼通常栖息在水的中下层，生性不活泼。其主要的食物来源为螺蛳、蚌、蚬、蛤等，偶尔也捕食虾和昆虫幼虫。
-      </p>
-      <img style="display: block; margin: 10px auto" src="static/image/39.png" alt="" />
-
-      <h2 style="text-align: center; padding-top: 50px">草鱼</h2>
-      <p style="text-indent:30px;">
-        草鱼是鲤科、草鱼属鱼类。草鱼的俗称有：鲩、油鲩、草鲩、鲩鱼、白鲩、草根(东北)等。体长形，前部近圆筒形，尾部侧扁，腹部圆，无腹棱。头宽，中等大，前部略平扁。体呈茶黄色，腹部灰白色，体侧鳞片边缘灰黑色，胸鳍、腹鳍灰黄色，其它鳍浅色。
-        草鱼是典型的草食性鱼类，栖息于平原地区的江河湖泊，一般喜居于水的中下层和近岸多水草区域。性活泼，游泳迅速，常成群觅食。草鱼幼鱼期则食幼虫，藻类等，草鱼也吃一些荤食，如蚯蚓，蜻蜓等。
-      </p>
-      <img style="display: block; margin: 10px auto" src="static/image/40.png" alt="" />
-
-      <h2 style="text-align: center; padding-top: 50px">鲢鱼</h2>
-      <p style="text-indent:30px;">鲢鱼又叫白鲢、水鲢、跳鲢、鲢子，属于鲤形目，鲤科。属于典型的滤食性鱼类。鲢鱼体形侧扁、稍高，呈纺锤形，背部青灰色，两侧及腹部白色。胸鳍不超过腹鳍基部。各鳍色灰白。头较大。眼睛位置很低。鳞片细小。
-        鲢鱼味甘，性平，无毒，其肉质鲜嫩，营养丰富，是较宜养殖的优良鱼种之一。为我国主要的淡水养殖鱼类之一。分布在全国各大水系。鲢鱼是人工饲养的大型淡水鱼，生长快、疾病少、产量高，多与草鱼、鲤鱼混养。</p>
-        <img style="display: block; margin: 10px auto" src="static/image/41.png" alt="" />
-
-        <h2 style="text-align: center; padding-top: 50px">鳙鱼</h2>
-        <p style="text-indent:30px;">鳙鱼是鲤科、鳙属鱼类。又叫大头鱼。眼位于头侧中轴之下方。口端位，口裂向上倾斜，下颌稍突出。
-          生活于江河干流、平缓的河湾、湖泊和水库的中上层，幼鱼及未成熟个体一般到沿江湖泊和附属水体中生长，为温水性鱼类，适宜生长的水温为25～30℃，能适应较肥沃的水体环境。</p>
-          <img style="display: block; margin: 10px auto" src="static/image/42.png" alt="" />
-
-          <h2 style="text-align: center; padding-top: 50px">鳗鱼</h2>
-          <p style="text-indent:30px;">鳗鱼，别名:白鳝、白鳗、河鳗、鳗鲡、青鳝、风馒、日本鳗。鳗鱼是指属于鳗鲡目分类下的物种总称。又称鳝，是一种外观类似长条蛇形的鱼类，具有鱼的基本特征。此外鳗鱼与鲑鱼类似具有洄游特性。鳗鱼属鱼类，似蛇，但无鳞，一般产于咸淡水交界海域。
-            鳗鱼的仔鱼体长体长6厘米左右，体重0.1克，但它的头狭小，身体高、薄又透明像片叶子一般，所以称为“柳叶鱼”。它的体液几乎和海水一样，所以可以很省力地随着洋流作长距离的漂送。从产卵场漂回黑潮海流再流回台湾的海边大概要半年之久，在抵达岸边前一个月才开始变态为身体细长透明的鳗线，又称为玻璃鱼。所以在每年12～1月间渔民们会忙着在河口附近的海岸用手叉网来捕捞正要溯河的鳗线来卖给养殖户。养殖户在买回去放养后才慢慢有色泽出现，变成黄色的幼鳗和银色的成鳗。在自然条件下，可捕到的鳗鱼的最大个体为45厘米，体重1600克。
-            成鳗生长快，外表圆碌碌，似圆椎形，色泽乌黑而令身，近年较多人工养殖，肉质爽脆。此鱼一年四季皆常见，但以夏冬两季最为肥美可口。鳗鱼营养丰富，味道鲜美，少刺多肉，并具有清凉解暑、滋补强身的作用。</p>
-            <img style="display: block; margin: 10px auto" src="static/image/43.png" alt="" />
+    </div>
+  </header>
+  <!-- end header inner -->
+  <!-- banner -->
+  <div class="full_bg" style="margin-top: 100px">
+    <div style="display:flex;justify-content:center">
+      <img style="margin:auto;width: 500px; height: 300px" src="static/new_images/zhizuo/上色装饰.jpg" alt="">
+      <img style="margin:auto;width: 500px; height: 300px" src="static/new_images/zhizuo/去工艺坊拜师学艺.jpg" alt="">
 
 
-      <h2 style="text-align: center; padding-top: 50px">学生实践过程</h2>
-      <div style="margin-top: 20px">
-        <div style="display: flex; justify-content: center">
-          <img style="margin: auto;width: 500px; height: 300px" src="static/image/44.png" alt="" />
-          <img style="margin: 10px auto;width: 500px; height: 300px" src="static/image/45.png" alt="" />
+    </div>
+    <div style="margin-top:20px;">
+      <div style="display:flex;justify-content:center">
+        <img style="margin:auto;width: 500px; height: 300px" src="static/new_images/zhizuo/我们的学习成果.jpg" alt="">
+        <img style="margin:auto;width: 500px; height: 300px" src="static/new_images/zhizuo/扪布.jpg" alt="">
+
+
+      </div>
+      <div style="margin-top:20px;">
+        <div style="display:flex;justify-content:center">
+          <img style="margin:auto;width: 500px; height: 300px" src="static/new_images/zhizuo/扪布成果.jpg" alt="">
+          <img style="margin:auto;width: 500px; height: 300px" src="static/new_images/zhizuo/拜师学艺.jpg" alt="">
+
+
+        </div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <div style="display:flex;justify-content:center">
+          <img style="margin:auto;width: 500px; height: 300px" src="static/new_images/zhizuo/观察鱼的形态.jpg" alt="">
+          <img style="margin:auto;width: 500px; height: 300px" src="static/new_images/zhizuo/鱼灯成果1.jpg" alt="">
+
+
+        </div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <div style="display:flex;justify-content:center">
+          <img style="margin:auto;width: 500px; height: 300px" src="static/new_images/zhizuo/鱼灯成果2.jpg" alt="">
+          <img style="margin:auto;width: 500px; height: 300px" src="static/new_images/zhizuo/鱼灯成果3.jpg" alt="">
+
+
+        </div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <div style="display:flex;justify-content:center">
+          <img style="margin:auto;width: 500px; height: 300px" src="static/new_images/zhizuo/鱼骨架1.jpg" alt="">
+          <img style="margin:auto;width: 500px; height: 300px" src="static/new_images/zhizuo/鱼骨架2.jpg" alt="">
+
+
         </div>
       </div>
     </div>
@@ -777,5 +780,6 @@
     <script type="text/javascript" style="display: none" async=""></script>
 
     <script type="text/javascript" data-cfasync="false"></script>
-  </body>
+</body>
+
 </html>
